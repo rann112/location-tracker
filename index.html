@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input, button, textarea {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        input, textarea {
+            width: 100%;
+        }
+        textarea {
+            height: 100px;
+            font-family: monospace;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .info {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #ddffdd;
+            border-left: 6px solid #4CAF50;
+        }
+        .warning {
+            background-color: #ffffcc;
+            border-left: 6px solid #ffeb3b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #trackingResults {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .map-link {
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            color: black;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Location Tracker</h1>
+        
+        <div id="adminPanel" class="section">
+            <div class="tab">
+                <button class="tablinks active" onclick="openTab(event, 'CreateLinks')">Create Links</button>
+                <button class="tablinks" onclick="openTab(event, 'TrackingData')">Tracking Data</button>
+                <button class="tablinks" onclick="openTab(event, 'ImportExport')">Import/Export Data</button>
+            </div>
+            
+            <div id="CreateLinks" class="tabcontent" style="display: block;">
+                <h2>Create Tracking Link</h2>
+                <div class="info">
+                    Generate tracking links to share with people. When opened, these links will request the user's location and record it.
+                </div>
+                
+                <label for="identifier">Enter a name for this tracking link:</label>
+                <input type="text" id="identifier" placeholder="e.g., marketing-campaign-1" required>
+                
+                <button onclick="generateTrackingLink()">Generate Tracking Link</button>
+                
+                <div id="linkResult" style="margin-top: 15px; display: none;">
+                    <p><strong>Your tracking link:</strong></p>
+                    <input type="text" id="trackingLink" readonly>
+                    <button onclick="copyToClipboard()">Copy Link</button>
+                    <p>Share this link with the people you want to track.</p>
+                </div>
+            </div>
+            
+            <div id="TrackingData" class="tabcontent">
+                <h2>Tracking Results</h2>
+                <div class="info">
+                    This table shows location data from people who have opened your tracking links.
+                </div>
+                <button onclick="clearTrackingData()">Clear All Data</button>
+                <div id="trackingResults">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Link ID</th>
+                                <th>Timestamp</th>
+                                <th>Latitude</th>
+                                <th>Longitude</th>
+                                <th>Accuracy (m)</th>
+                                <th>User Agent</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                            <tr>
+                                <td colspan="7">No tracking data available yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="ImportExport" class="tabcontent">
+                <h2>Import/Export Data</h2>
+                <div class="info">
+                    Export your tracking data to save it, or import previously saved data.
+                </div>
+                
+                <h3>Export Data</h3>
+                <button onclick="exportData()">Export All Data</button>
+                <div id="exportResult" style="display: none;">
+                    <p>Copy this data and save it somewhere safe:</p>
+                    <textarea id="exportData" readonly></textarea>
+                    <button onclick="copyExportData()">Copy Data</button>
+                </div>
+                
+                <h3>Import Data</h3>
+                <textarea id="importData" placeholder="Paste your exported data here..."></textarea>
+                <button onclick="importData()">Import Data</button>
+                <div id="importResult" class="info" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <div id="trackingPanel" class="section" style="display: none;">
+            <h2>Location Request</h2>
+            <div class="info">
+                <p>This page is requesting your location. If you'd like to continue, please allow access when prompted by your browser.</p>
+                <p>Your location is being requested for: <span id="trackingReason">Not specified</span></p>
+            </div>
+            <div id="locationStatus">Waiting for permission...</div>
+            <div id="locationResult" style="display: none;">
+                <h3>Thank you!</h3>
+                <p>Your location has been recorded.</p>
+                <p>Latitude: <span id="displayLat"></span></p>
+                <p>Longitude: <span id="displayLng"></span></p>
+                <button onclick="returnToAdmin()">Return to Admin Panel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Use sessionStorage to persist data during page navigation
+        let trackingData = [];
+        
+        // Initialize data from sessionStorage if available
+        if(sessionStorage.getItem('trackingData')) {
+            try {
+                trackingData = JSON.parse(sessionStorage.getItem('trackingData'));
+            } catch (e) {
+                console.error("Error parsing tracking data:", e);
+                trackingData = [];
+            }
+        }
+        
+        // Check if this is a tracking link or data is being returned
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const trackingId = urlParams.get('id');
+            const lat = urlParams.get('lat');
+            const lng = urlParams.get('lng');
+            const acc = urlParams.get('acc');
+            const ts = urlParams.get('ts');
+            
+            // If we have location data in the URL, capture it
+            if (lat && lng && trackingId) {
+                const locationData = {
+                    id: trackingId,
+                    timestamp: ts || new Date().toISOString(),
+                    latitude: parseFloat(lat),
+                    longitude: parseFloat(lng),
+                    accuracy: acc ? parseFloat(acc) : null,
+                    userAgent: navigator.userAgent
+                };
+                
+                // Add to tracking data
+                trackingData.push(locationData);
+                saveTrackingData();
+                
+                // Remove params from URL to avoid duplicate data
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Show success message
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'info success';
+                infoDiv.innerHTML = 'Location data received and saved!';
+                document.querySelector('.container').insertBefore(infoDiv, document.getElementById('adminPanel'));
+                
+                // Auto hide after 5 seconds
+                setTimeout(() => {
+                    infoDiv.style.display = 'none';
+                }, 5000);
+            }
+            
+            if (trackingId && !lat) {
+                // This is a tracking request
+                document.getElementById('adminPanel').style.display = 'none';
+                document.getElementById('trackingPanel').style.display = 'block';
+                document.getElementById('trackingReason').textContent = trackingId;
+                
+                // Request location
+                requestLocation(trackingId);
+            } else {
+                // This is the admin panel
+                loadTrackingResults();
+            }
+        };
+        
+        function saveTrackingData() {
+            // Save to sessionStorage
+            sessionStorage.setItem('trackingData', JSON.stringify(trackingData));
+        }
+        
+        function generateTrackingLink() {
+            const identifier = document.getElementById('identifier').value.trim();
+            if (!identifier) {
+                alert('Please enter an identifier for your tracking link.');
+                return;
+            }
+            
+            // Create the tracking link - remove any existing query params
+            const baseUrl = window.location.href.split('?')[0];
+            const trackingLink = `${baseUrl}?id=${encodeURIComponent(identifier)}`;
+            
+            // Display the link
+            document.getElementById('trackingLink').value = trackingLink;
+            document.getElementById('linkResult').style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            const linkInput = document.getElementById('trackingLink');
+            linkInput.select();
+            document.execCommand('copy');
+            alert('Link copied to clipboard!');
+        }
+        
+        function requestLocation(trackingId) {
+            document.getElementById('locationStatus').textContent = 'Requesting your location...';
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    // Success
+                    function(position) {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+                        const accuracy = position.coords.accuracy;
+                        const timestamp = new Date().toISOString();
+                        
+                        // Show success message with location data
+                        document.getElementById('locationStatus').textContent = 'Location successfully captured!';
+                        document.getElementById('displayLat').textContent = latitude;
+                        document.getElementById('displayLng').textContent = longitude;
+                        document.getElementById('locationResult').style.display = 'block';
+                        
+                        // Create a URL with the location data to pass back to admin
+                        const baseUrl = window.location.href.split('?')[0];
+                        const dataUrl = `${baseUrl}?lat=${latitude}&lng=${longitude}&acc=${accuracy}&id=${encodeURIComponent(trackingId)}&ts=${encodeURIComponent(timestamp)}`;
+                        
+                        // Create a button to send data back
+                        const sendDataBtn = document.createElement('button');
+                        sendDataBtn.textContent = 'Send Location Data';
+                        sendDataBtn.onclick = function() {
+                            window.location.href = dataUrl;
+                        };
+                        document.getElementById('locationResult').appendChild(sendDataBtn);
+                    },
+                    // Error
+                    function(error) {
+                        let errorMessage;
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = 'Location access was denied by the user.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = 'Location information is unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = 'The request to get location timed out.';
+                                break;
+                            case error.UNKNOWN_ERROR:
+                                errorMessage = 'An unknown error occurred.';
+                                break;
+                        }
+                        document.getElementById('locationStatus').textContent = 'Error: ' + errorMessage;
+                    }
+                );
+            } else {
+                document.getElementById('locationStatus').textContent = 'Geolocation is not supported by this browser.';
+            }
+        }
+        
+        function returnToAdmin() {
+            // Remove query params and return to admin panel
+            window.location.href = window.location.href.split('?')[0];
+        }
+        
+        function loadTrackingResults() {
+            const resultsBody = document.getElementById('resultsBody');
+            resultsBody.innerHTML = '';
+            
+            if (trackingData.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="7">No tracking data available yet.</td>';
+                resultsBody.appendChild(row);
+                return;
+            }
+            
+            // Sort data with newest first
+            trackingData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            // Add each record to the table
+            trackingData.forEach((data, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${data.id}</td>
+                    <td>${formatDate(data.timestamp)}</td>
+                    <td>${data.latitude}</td>
+                    <td>${data.longitude}</td>
+                    <td>${data.accuracy !== null ? data.accuracy : 'N/A'}</td>
+                    <td>${data.userAgent ? data.userAgent.substring(0, 30) + '...' : 'N/A'}</td>
+                    <td><a class="map-link" onclick="openInMaps(${data.latitude}, ${data.longitude})">View on Map</a></td>
+                `;
+                resultsBody.appendChild(row);
+            });
+        }
+        
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString();
+            } catch (e) {
+                return 'Invalid Date';
+            }
+        }
+        
+        function openInMaps(lat, lng) {
+            window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+        }
+        
+        function openTab(evt, tabName) {
+            // Hide all tab content
+            const tabcontent = document.getElementsByClassName("tabcontent");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            
+            // Remove "active" class from all tab buttons
+            const tablinks = document.getElementsByClassName("tablinks");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            
+            // Show the current tab and add "active" class to the button
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        
+        function exportData() {
+            const exportField = document.getElementById('exportData');
+            exportField.value = JSON.stringify(trackingData, null, 2);
+            document.getElementById('exportResult').style.display = 'block';
+        }
+        
+        function copyExportData() {
+            const exportField = document.getElementById('exportData');
+            exportField.select();
+            document.execCommand('copy');
+            alert('Data copied to clipboard!');
+        }
+        
+        function importData() {
+            try {
+                const importField = document.getElementById('importData');
+                const importedData = JSON.parse(importField.value);
+                
+                if (Array.isArray(importedData)) {
+                    // Merge with existing data (avoid duplicates by timestamp)
+                    const existingTimestamps = new Set(trackingData.map(item => item.timestamp));
+                    
+                    let newItemsCount = 0;
+                    importedData.forEach(item => {
+                        if (!existingTimestamps.has(item.timestamp)) {
+                            trackingData.push(item);
+                            newItemsCount++;
+                        }
+                    });
+                    
+                    // Save and reload
+                    saveTrackingData();
+                    loadTrackingResults();
+                    
+                    // Show success message
+                    const importResult = document.getElementById('importResult');
+                    importResult.innerHTML = `Successfully imported ${newItemsCount} new tracking records.`;
+                    importResult.className = 'info success';
+                    importResult.style.display = 'block';
+                    
+                    // Clear import field
+                    importField.value = '';
+                } else {
+                    throw new Error("Imported data is not an array");
+                }
+            } catch (e) {
+                // Show error message
+                const importResult = document.getElementById('importResult');
+                importResult.innerHTML = `Error importing data: ${e.message}. Make sure the format is correct.`;
+                importResult.className = 'info warning';
+                importResult.style.display = 'block';
+            }
+        }
+        
+        function clearTrackingData() {
+            if (confirm('Are you sure you want to delete all tracking data? This cannot be undone.')) {
+                trackingData = [];
+                saveTrackingData();
+                loadTrackingResults();
+            }
+        }
+    </script>
+</body>
+</html>
